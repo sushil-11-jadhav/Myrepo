@@ -1,0 +1,43 @@
+pipeline {
+	agent {
+		label {
+			label "built-in"
+			customWorkspace "/mnt/gol"
+		}
+	}
+	stages {
+		stage ("creating WAR") {
+			steps {
+					sh "cd /mnt/gol"
+					sh "mvn clean install"
+					sh "scp -i /mnt/keys/my.pem /mnt/gol/gameoflife-web/target/project ec2-user@172.31.12.135:/home/ec2-user"
+					sh "scp -i /mnt/keys/my.pem /mnt/gol/gameoflife-web/target/project ec2-user@172.31.4.20:/home/ec2-user"
+			}
+		}
+		stage ("deploying on slave jnlp") {
+			agent {
+				label {
+					label "slave jnlp"
+				}
+			}
+			steps {
+					sh "service docker start"
+					sh "cd /home/ec2-user/project"
+					sh "docker-compose up -d --scale tomcat=2"
+			}
+		}
+		stage ("deploying on slave ssh") {
+			agent {
+				label {
+					label "slave ssh"
+				}
+			}
+			steps {
+					sh "sudo service docker start"
+					sh "sudo cd /home/ec2-user/project"
+					sh "sudo docker-compose up -d --scale tomcat=2"
+			}
+		}
+		
+	}   
+}
