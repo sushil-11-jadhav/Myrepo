@@ -1,0 +1,24 @@
+---
+
+#WAR DEPLOYING
+
+- hosts: qa
+  user: sushil
+  become: yes
+  connection: ssh
+  gather_facts: yes
+
+
+
+  tasks:
+    - name: install java
+      action: yum name=java-1.8.0-openjdk-devel.x86_64 state=installed
+
+    - name: unzip tomcat and copied
+      action: unarchive src=/mnt/apache-tomcat-9.0.74.zip dest=/mnt mode=0777
+
+    - name: game of war copied
+      action: copy src=/mnt/gol/gameoflife.war dest=/mnt/apache-tomcat-9.0.74/webapps
+
+    - name: run tomcat
+      command: nohup /mnt/apache-tomcat-9.0.74/bin/startup.sh
