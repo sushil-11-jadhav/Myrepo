@@ -1,0 +1,91 @@
+[root@ip-172-31-2-255 service]# cat main.tf
+provider "aws" {
+
+        access_key = "AKIAVGLJ6FGL2XLRUMNH"
+        secret_key = "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"
+        region = "ap-south-1"
+}
+
+#created VPC
+resource "aws_vpc" "vpc-1" {
+
+        cidr_block = "10.10.0.0/16"
+        tags = {
+                Name = "vpc-1"
+        }
+}
+
+#created Subnets
+resource "aws_subnet" "sub-1" {
+
+        vpc_id = "${aws_vpc.vpc-1.id}"
+        cidr_block = "10.10.1.0/24"
+        tags = {
+                Name = "sub-1"
+        }
+        availability_zone = "ap-south-1a"
+}
+
+resource "aws_subnet" "sub-2" {
+
+        vpc_id = "${aws_vpc.vpc-1.id}"
+        cidr_block = "10.10.2.0/24"
+        tags = {
+                Name = "sub-2"
+        }
+        availability_zone = "ap-south-1b"
+}
+
+#created Internet-Gateway
+resource "aws_internet_gateway" "igw" {
+
+        vpc_id = "${aws_vpc.vpc-1.id}"
+        tags = {
+                Name = "igw"
+        }
+}
+
+#created Route Tables
+resource "aws_route_table" "rt-1" {
+
+        vpc_id = "${aws_vpc.vpc-1.id}"
+        route {
+                cidr_block = "0.0.0.0/0"
+                gateway_id = "${aws_internet_gateway.igw.id}"
+        }
+}
+
+#associated subnets with route tables
+resource "aws_route_table_association" "connect" {
+
+                subnet_id = "${aws_subnet.sub-1.id}"
+                route_table_id = "${aws_route_table.rt-1.id}"
+}
+
+resource "aws_route_table_association" "connect-2" {
+
+                subnet_id = "${aws_subnet.sub-2.id}"
+                route_table_id = "${aws_route_table.rt-1.id}"
+}
+
+
+#created security group
+resource "aws_security_group" "sec" {
+                vpc_id = "${aws_vpc.vpc-1.id}"
+                ingress {
+                        from_port = "22"
+                        to_port = "22"
+                        protocol = "tcp"
+                        cidr_blocks = ["0.0.0.0/0"]
+
+                }
+}
+
+#created instance
+resource "aws_instance" "server" {
+
+        ami = "ami-078efad6f7ec18b8a"
+        instance_type = "t2.micro"
+        vpc_security_group_ids = ["${aws_security_group.sec.id}"]
+        subnet_id = "${aws_subnet.sub-1.id}"
+}
